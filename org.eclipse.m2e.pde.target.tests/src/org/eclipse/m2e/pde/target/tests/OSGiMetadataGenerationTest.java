@@ -265,6 +265,52 @@ public class OSGiMetadataGenerationTest extends AbstractMavenTargetTest {
 		}
 	}
 
+	@Test
+	public void testNonOSGiArtifact_missingOptionalDependencies() throws CoreException {
+		ITargetDefinition target = resolveMavenTarget("""
+				<location includeDependencyDepth="none" includeSource="true" missingManifest="generate" type="Maven">
+					<dependencies>
+						<dependency>
+							<groupId>net.sf.saxon</groupId>
+							<artifactId>Saxon-HE</artifactId>
+							<version>10.9</version>
+							<type>jar</type>
+						</dependency>
+					</dependencies>
+				</location>
+				""");
+		IStatus targetStatus = target.getStatus();
+		assertEquals(IStatus.ERROR, targetStatus.getSeverity());
+		assertArrayEquals(EMPTY, target.getAllFeatures());
+		TargetBundle[] allBundles = target.getAllBundles();
+		assertEquals(1, allBundles.length);
+		IStatus status = allBundles[0].getStatus();
+		assertEquals(IStatus.ERROR, status.getSeverity());
+	}
+
+	@Test
+	public void testNonOSGiArtifact_missingOptionalDependenciesWithExclude() throws CoreException {
+		ITargetDefinition target = resolveMavenTarget("""
+				<location includeDependencyDepth="none" includeSource="true" missingManifest="generate" type="Maven">
+					<dependencies>
+						<dependency>
+							<groupId>net.sf.saxon</groupId>
+							<artifactId>Saxon-HE</artifactId>
+							<version>10.9</version>
+							<type>jar</type>
+						</dependency>
+						<exclude>org.apache.ws.commons.axiom:axiom:1.2.15</exclude>
+					</dependencies>
+				</location>
+				""");
+		assertTrue(target.getStatus().isOK());
+		assertArrayEquals(EMPTY, target.getAllFeatures());
+		TargetBundle[] allBundles = target.getAllBundles();
+		assertEquals(1, allBundles.length);
+		IStatus status = allBundles[0].getStatus();
+		assertEquals(IStatus.OK, status.getSeverity());
+	}
+
 	private static TargetBundle getGeneratedBundle(ITargetDefinition target) {
 		return Arrays.stream(target.getBundles()).filter(b -> !b.isSourceBundle()).findFirst().orElseThrow();
 	}
